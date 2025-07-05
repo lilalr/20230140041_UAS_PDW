@@ -1,71 +1,75 @@
 <?php
-// 1. Definisi Variabel untuk Template
 $pageTitle = 'Dashboard';
 $activePage = 'dashboard';
+require_once '../config.php';
+require_once 'templates/header.php';
 
-// 2. Panggil Header
-require_once 'templates/header.php'; 
+$totalModul = mysqli_fetch_assoc(mysqli_query($conn, "SELECT COUNT(*) AS total FROM modul"))['total'];
+$totalLaporan = mysqli_fetch_assoc(mysqli_query($conn, "SELECT COUNT(*) AS total FROM laporan"))['total'];
+$laporanBelumDinilai = mysqli_fetch_assoc(mysqli_query($conn, "SELECT COUNT(*) AS total FROM laporan WHERE nilai IS NULL"))['total'];
+
+$laporan = mysqli_query($conn, "
+    SELECT u.nama AS mahasiswa, m.judul AS modul, l.tanggal_upload
+    FROM laporan l
+    JOIN users u ON l.user_id = u.id
+    JOIN modul m ON l.modul_id = m.id
+    ORDER BY l.tanggal_upload DESC
+    LIMIT 5
+");
 ?>
 
-<div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-    
-    <div class="bg-white p-6 rounded-lg shadow-md flex items-center space-x-4">
-        <div class="bg-blue-100 p-3 rounded-full">
-            <svg class="w-6 h-6 text-blue-600" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M12 6.042A8.967 8.967 0 006 3.75c-1.052 0-2.062.18-3 .512v14.25A8.987 8.987 0 016 18c2.305 0 4.408.867 6 2.292m0-14.25a8.966 8.966 0 016-2.292c1.052 0 2.062.18 3 .512v14.25A8.987 8.987 0 0018 18a8.967 8.967 0 00-6 2.292m0-14.25v14.25" /></svg>
-        </div>
+<!-- Statistik Kartu -->
+<div class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-10">
+    <div class="bg-blue-50 p-6 rounded-2xl shadow-lg flex items-center justify-between">
         <div>
-            <p class="text-sm text-gray-500">Total Modul Diajarkan</p>
-            <p class="text-2xl font-bold text-gray-800">12</p>
+            <p class="text-blue-700 text-sm font-semibold mb-1">Total Modul</p>
+            <p class="text-3xl font-extrabold text-blue-900"><?= $totalModul ?></p>
+        </div>
+        <div class="bg-blue-200 text-blue-700 p-3 rounded-full">
+            📘
         </div>
     </div>
 
-    <div class="bg-white p-6 rounded-lg shadow-md flex items-center space-x-4">
-        <div class="bg-green-100 p-3 rounded-full">
-            <svg class="w-6 h-6 text-green-600" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M9 12.75L11.25 15 15 9.75M21 12a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
-        </div>
+    <div class="bg-green-50 p-6 rounded-2xl shadow-lg flex items-center justify-between">
         <div>
-            <p class="text-sm text-gray-500">Total Laporan Masuk</p>
-            <p class="text-2xl font-bold text-gray-800">152</p>
+            <p class="text-green-700 text-sm font-semibold mb-1">Laporan Masuk</p>
+            <p class="text-3xl font-extrabold text-green-900"><?= $totalLaporan ?></p>
+        </div>
+        <div class="bg-green-200 text-green-700 p-3 rounded-full">
+            📂
         </div>
     </div>
 
-    <div class="bg-white p-6 rounded-lg shadow-md flex items-center space-x-4">
-        <div class="bg-yellow-100 p-3 rounded-full">
-            <svg class="w-6 h-6 text-yellow-600" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M12 6v6h4.5m4.5 0a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
-        </div>
+    <div class="bg-yellow-50 p-6 rounded-2xl shadow-lg flex items-center justify-between">
         <div>
-            <p class="text-sm text-gray-500">Laporan Belum Dinilai</p>
-            <p class="text-2xl font-bold text-gray-800">18</p>
+            <p class="text-yellow-600 text-sm font-semibold mb-1">Belum Dinilai</p>
+            <p class="text-3xl font-extrabold text-yellow-800"><?= $laporanBelumDinilai ?></p>
+        </div>
+        <div class="bg-yellow-200 text-yellow-600 p-3 rounded-full">
+            ⏳
         </div>
     </div>
 </div>
 
-<div class="bg-white p-6 rounded-lg shadow-md mt-8">
-    <h3 class="text-xl font-bold text-gray-800 mb-4">Aktivitas Laporan Terbaru</h3>
-    <div class="space-y-4">
-        <div class="flex items-center">
-            <div class="w-10 h-10 rounded-full bg-gray-200 flex items-center justify-center mr-4">
-                <span class="font-bold text-gray-500">BS</span>
+<!-- Aktivitas -->
+<div class="bg-white p-6 rounded-2xl shadow-lg">
+    <h3 class="text-xl font-bold text-[#2d6a6d] mb-5">Aktivitas Terbaru</h3>
+    <div class="divide-y divide-gray-200">
+        <?php while ($row = mysqli_fetch_assoc($laporan)): ?>
+        <div class="flex items-start py-4">
+            <div class="w-10 h-10 bg-[#5eaaa8] text-white flex items-center justify-center rounded-full font-bold mr-4">
+                <?= strtoupper(substr($row['mahasiswa'], 0, 2)) ?>
             </div>
             <div>
-                <p class="text-gray-800"><strong>Budi Santoso</strong> mengumpulkan laporan untuk <strong>Modul 2</strong></p>
-                <p class="text-sm text-gray-500">10 menit lalu</p>
+                <p class="text-gray-800">
+                    <strong><?= htmlspecialchars($row['mahasiswa']) ?></strong> mengumpulkan laporan untuk
+                    <strong><?= htmlspecialchars($row['modul']) ?></strong>
+                </p>
+                <p class="text-sm text-gray-500"><?= date("d M Y, H:i", strtotime($row['tanggal_upload'])) ?></p>
             </div>
         </div>
-        <div class="flex items-center">
-            <div class="w-10 h-10 rounded-full bg-gray-200 flex items-center justify-center mr-4">
-                <span class="font-bold text-gray-500">CL</span>
-            </div>
-            <div>
-                <p class="text-gray-800"><strong>Citra Lestari</strong> mengumpulkan laporan untuk <strong>Modul 2</strong></p>
-                <p class="text-sm text-gray-500">45 menit lalu</p>
-            </div>
-        </div>
+        <?php endwhile; ?>
     </div>
 </div>
 
-
-<?php
-// 3. Panggil Footer
-require_once 'templates/footer.php';
-?>
+<?php require_once 'templates/footer.php'; ?>

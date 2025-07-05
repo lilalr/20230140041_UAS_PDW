@@ -4,12 +4,12 @@ require_once 'config.php';
 $message = '';
 
 if ($_SERVER["REQUEST_METHOD"] == "POST") {
-    $nama = trim($_POST['nama']);
-    $email = trim($_POST['email']);
+    $nama     = trim($_POST['nama']);
+    $email    = trim($_POST['email']);
     $password = trim($_POST['password']);
-    $role = trim($_POST['role']);
+    $role     = trim($_POST['role']);
 
-    // Validasi sederhana
+    // Validasi
     if (empty($nama) || empty($email) || empty($password) || empty($role)) {
         $message = "Semua field harus diisi!";
     } elseif (!filter_var($email, FILTER_VALIDATE_EMAIL)) {
@@ -17,33 +17,28 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
     } elseif (!in_array($role, ['mahasiswa', 'asisten'])) {
         $message = "Peran tidak valid!";
     } else {
-        // Cek apakah email sudah terdaftar
-        $sql = "SELECT id FROM users WHERE email = ?";
-        $stmt = $conn->prepare($sql);
-        $stmt->bind_param("s", $email);
-        $stmt->execute();
-        $stmt->store_result();
+        $cek = $conn->prepare("SELECT id FROM users WHERE email = ?");
+        $cek->bind_param("s", $email);
+        $cek->execute();
+        $cek->store_result();
 
-        if ($stmt->num_rows > 0) {
-            $message = "Email sudah terdaftar. Silakan gunakan email lain.";
+        if ($cek->num_rows > 0) {
+            $message = "Email sudah terdaftar. Gunakan email lain.";
         } else {
-            // Hash password untuk keamanan
-            $hashed_password = password_hash($password, PASSWORD_BCRYPT);
+            $hashed = password_hash($password, PASSWORD_BCRYPT);
 
-            // Simpan ke database
-            $sql_insert = "INSERT INTO users (nama, email, password, role) VALUES (?, ?, ?, ?)";
-            $stmt_insert = $conn->prepare($sql_insert);
-            $stmt_insert->bind_param("ssss", $nama, $email, $hashed_password, $role);
+            $simpan = $conn->prepare("INSERT INTO users (nama, email, password, role) VALUES (?, ?, ?, ?)");
+            $simpan->bind_param("ssss", $nama, $email, $hashed, $role);
 
-            if ($stmt_insert->execute()) {
+            if ($simpan->execute()) {
                 header("Location: login.php?status=registered");
                 exit();
             } else {
-                $message = "Terjadi kesalahan. Silakan coba lagi.";
+                $message = "Terjadi kesalahan saat menyimpan data.";
             }
-            $stmt_insert->close();
+            $simpan->close();
         }
-        $stmt->close();
+        $cek->close();
     }
 }
 $conn->close();
@@ -52,53 +47,71 @@ $conn->close();
 <!DOCTYPE html>
 <html lang="id">
 <head>
-    <meta charset="UTF-8">
-    <title>Registrasi Pengguna</title>
-    <style>
-        body { font-family: Arial, sans-serif; background-color: #f4f4f4; display: flex; justify-content: center; align-items: center; height: 100vh; margin: 0; }
-        .container { background-color: #fff; padding: 20px 40px; border-radius: 8px; box-shadow: 0 2px 5px rgba(0,0,0,0.1); width: 320px; }
-        h2 { text-align: center; color: #333; }
-        .form-group { margin-bottom: 15px; }
-        .form-group label { display: block; margin-bottom: 5px; color: #555; }
-        .form-group input, .form-group select { width: 100%; padding: 10px; border: 1px solid #ddd; border-radius: 4px; box-sizing: border-box; }
-        .btn { background-color: #28a745; color: white; padding: 10px; border: none; border-radius: 4px; cursor: pointer; width: 100%; font-size: 16px; }
-        .btn:hover { background-color: #218838; }
-        .message { color: red; text-align: center; margin-bottom: 15px; }
-        .login-link { text-align: center; margin-top: 15px; }
-        .login-link a { color: #007bff; text-decoration: none; }
-    </style>
+  <meta charset="UTF-8" />
+  <title>Registrasi Akun - SIMPRAK</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <style>
+    body {
+      background: linear-gradient(to bottom right, #5eaaa8, #2d6a6d);
+    }
+  </style>
 </head>
-<body>
-    <div class="container">
-        <h2>Registrasi</h2>
-        <?php if (!empty($message)): ?>
-            <p class="message"><?php echo $message; ?></p>
-        <?php endif; ?>
-        <form action="register.php" method="post">
-            <div class="form-group">
-                <label for="nama">Nama Lengkap</label>
-                <input type="text" id="nama" name="nama" required>
-            </div>
-            <div class="form-group">
-                <label for="email">Email</label>
-                <input type="email" id="email" name="email" required>
-            </div>
-            <div class="form-group">
-                <label for="password">Password</label>
-                <input type="password" id="password" name="password" required>
-            </div>
-            <div class="form-group">
-                <label for="role">Daftar Sebagai</label>
-                <select id="role" name="role" required>
-                    <option value="mahasiswa">Mahasiswa</option>
-                    <option value="asisten">Asisten</option>
-                </select>
-            </div>
-            <button type="submit" class="btn">Daftar</button>
-        </form>
-        <div class="login-link">
-            <p>Sudah punya akun? <a href="login.php">Login di sini</a></p>
-        </div>
+<body class="min-h-screen flex items-center justify-center font-sans">
+
+  <div class="bg-white p-8 rounded-xl shadow-xl w-full max-w-md">
+    <div class="text-center mb-6">
+      <div class="inline-flex items-center justify-center w-14 h-14 bg-[#5eaaa8] rounded-full mb-3">
+        <svg xmlns="http://www.w3.org/2000/svg" class="h-7 w-7 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                d="M9.75 3h4.5a.75.75 0 01.75.75V5h3.25A1.75 1.75 0 0120 6.75v9.5A1.75 1.75 0 0118.25 18H5.75A1.75 1.75 0 014 16.25v-9.5A1.75 1.75 0 015.75 5H9V3.75A.75.75 0 019.75 3z" />
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 21h6" />
+        </svg>
+      </div>
+      <h1 class="text-2xl font-bold text-[#2d6a6d]">Registrasi SIMPRAK</h1>
+      <p class="text-sm text-gray-600">Buat akun baru untuk mulai praktikum</p>
     </div>
+
+    <?php if (!empty($message)): ?>
+      <div class="bg-red-100 border border-red-300 text-red-700 p-3 mb-4 rounded-md text-sm">
+        <?= $message; ?>
+      </div>
+    <?php endif; ?>
+
+    <form method="POST" class="space-y-4">
+      <div>
+        <label class="block text-sm font-medium text-gray-700 mb-1">Nama Lengkap</label>
+        <input type="text" name="nama" required
+          class="w-full border border-gray-300 px-4 py-2 rounded-md focus:ring-2 focus:ring-[#5eaaa8]">
+      </div>
+      <div>
+        <label class="block text-sm font-medium text-gray-700 mb-1">Email</label>
+        <input type="email" name="email" required
+          class="w-full border border-gray-300 px-4 py-2 rounded-md focus:ring-2 focus:ring-[#5eaaa8]">
+      </div>
+      <div>
+        <label class="block text-sm font-medium text-gray-700 mb-1">Password</label>
+        <input type="password" name="password" required
+          class="w-full border border-gray-300 px-4 py-2 rounded-md focus:ring-2 focus:ring-[#5eaaa8]">
+      </div>
+      <div>
+        <label class="block text-sm font-medium text-gray-700 mb-1">Role</label>
+        <select name="role" required
+          class="w-full border border-gray-300 px-4 py-2 rounded-md focus:ring-2 focus:ring-[#5eaaa8]">
+          <option value="">-- Pilih Peran --</option>
+          <option value="mahasiswa">Mahasiswa</option>
+          <option value="asisten">Asisten</option>
+        </select>
+      </div>
+      <button type="submit"
+        class="w-full bg-[#5eaaa8] text-white font-semibold py-2 rounded-md hover:bg-[#2d6a6d] transition duration-200">
+        DAFTAR
+      </button>
+    </form>
+
+    <p class="text-sm text-center mt-4 text-gray-600">
+      Sudah punya akun? <a href="login.php" class="text-[#2d6a6d] font-medium hover:underline">Login di sini</a>
+    </p>
+  </div>
+
 </body>
 </html>

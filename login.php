@@ -1,114 +1,102 @@
 <?php
+ini_set('display_errors', 1);
+error_reporting(E_ALL);
 session_start();
 require_once 'config.php';
 
-// Jika sudah login, redirect ke halaman yang sesuai
+// Jika sudah login, langsung redirect
 if (isset($_SESSION['user_id'])) {
-    if ($_SESSION['role'] == 'asisten') {
+    if ($_SESSION['role'] === 'asisten') {
         header("Location: asisten/dashboard.php");
-    } elseif ($_SESSION['role'] == 'mahasiswa') {
+    } elseif ($_SESSION['role'] === 'mahasiswa') {
         header("Location: mahasiswa/dashboard.php");
     }
-    exit();
+    exit;
 }
 
-$message = '';
+$error = '';
+if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+    $email = mysqli_real_escape_string($conn, $_POST['email']);
+    $password = $_POST['password'];
 
-if ($_SERVER["REQUEST_METHOD"] == "POST") {
-    $email = trim($_POST['email']);
-    $password = trim($_POST['password']);
+    $result = mysqli_query($conn, "SELECT * FROM users WHERE email = '$email' LIMIT 1");
+    $user = mysqli_fetch_assoc($result);
 
-    if (empty($email) || empty($password)) {
-        $message = "Email dan password harus diisi!";
-    } else {
-        $sql = "SELECT id, nama, email, password, role FROM users WHERE email = ?";
-        $stmt = $conn->prepare($sql);
-        $stmt->bind_param("s", $email);
-        $stmt->execute();
-        $result = $stmt->get_result();
+    if ($user && password_verify($password, $user['password'])) {
+        $_SESSION['user_id'] = $user['id'];
+        $_SESSION['nama'] = $user['nama'];
+        $_SESSION['role'] = $user['role'];
 
-        if ($result->num_rows === 1) {
-            $user = $result->fetch_assoc();
-
-            // Verifikasi password
-            if (password_verify($password, $user['password'])) {
-                // Password benar, simpan semua data penting ke session
-                $_SESSION['user_id'] = $user['id'];
-                $_SESSION['nama'] = $user['nama'];
-                $_SESSION['role'] = $user['role'];
-
-                // ====== INI BAGIAN YANG DIUBAH ======
-                // Logika untuk mengarahkan pengguna berdasarkan peran (role)
-                if ($user['role'] == 'asisten') {
-                    header("Location: asisten/dashboard.php");
-                    exit();
-                } elseif ($user['role'] == 'mahasiswa') {
-                    header("Location: mahasiswa/dashboard.php");
-                    exit();
-                } else {
-                    // Fallback jika peran tidak dikenali
-                    $message = "Peran pengguna tidak valid.";
-                }
-                // ====== AKHIR DARI BAGIAN YANG DIUBAH ======
-
-            } else {
-                $message = "Password yang Anda masukkan salah.";
-            }
-        } else {
-            $message = "Akun dengan email tersebut tidak ditemukan.";
+        // Redirect sesuai role
+        if ($user['role'] === 'asisten') {
+            header("Location: asisten/dashboard.php");
+        } elseif ($user['role'] === 'mahasiswa') {
+            header("Location: mahasiswa/dashboard.php");
         }
-        $stmt->close();
+        exit;
+    } else {
+        $error = "Email atau password salah.";
     }
 }
-$conn->close();
 ?>
-
 <!DOCTYPE html>
 <html lang="id">
 <head>
-    <meta charset="UTF-8">
-    <title>Login</title>
-    <style>
-        /* ... (CSS Anda tidak perlu diubah) ... */
-        body { font-family: Arial, sans-serif; background-color: #f4f4f4; display: flex; justify-content: center; align-items: center; height: 100vh; margin: 0; }
-        .container { background-color: #fff; padding: 20px 40px; border-radius: 8px; box-shadow: 0 2px 5px rgba(0,0,0,0.1); width: 320px; }
-        h2 { text-align: center; color: #333; }
-        .form-group { margin-bottom: 15px; }
-        .form-group label { display: block; margin-bottom: 5px; color: #555; }
-        .form-group input { width: 100%; padding: 10px; border: 1px solid #ddd; border-radius: 4px; box-sizing: border-box; }
-        .btn { background-color: #007bff; color: white; padding: 10px; border: none; border-radius: 4px; cursor: pointer; width: 100%; font-size: 16px; }
-        .btn:hover { background-color: #0056b3; }
-        .message { color: red; text-align: center; margin-bottom: 15px; }
-        .message.success { color: green; }
-        .register-link { text-align: center; margin-top: 15px; }
-        .register-link a { color: #28a745; text-decoration: none; }
-    </style>
+  <meta charset="UTF-8" />
+  <title>Login SIMPRAK</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <style>
+    body {
+      background: linear-gradient(to bottom right, #5eaaa8, #2d6a6d);
+    }
+  </style>
 </head>
-<body>
-    <div class="container">
-        <h2>Login</h2>
-        <?php 
-            if (isset($_GET['status']) && $_GET['status'] == 'registered') {
-                echo '<p class="message success">Registrasi berhasil! Silakan login.</p>';
-            }
-            if (!empty($message)) {
-                echo '<p class="message">' . $message . '</p>';
-            }
-        ?>
-        <form action="login.php" method="post">
-            <div class="form-group">
-                <label for="email">Email</label>
-                <input type="email" id="email" name="email" required>
-            </div>
-            <div class="form-group">
-                <label for="password">Password</label>
-                <input type="password" id="password" name="password" required>
-            </div>
-            <button type="submit" class="btn">Login</button>
-        </form>
-         <div class="register-link">
-            <p>Belum punya akun? <a href="register.php">Daftar di sini</a></p>
-        </div>
+<body class="min-h-screen flex items-center justify-center font-sans">
+
+  <div class="bg-white p-8 rounded-xl shadow-xl w-full max-w-md">
+    <div class="text-center mb-6">
+      <div class="inline-flex items-center justify-center w-14 h-14 bg-[#5eaaa8] rounded-full mb-3">
+        <svg xmlns="http://www.w3.org/2000/svg" class="h-7 w-7 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                d="M9.75 3h4.5a.75.75 0 01.75.75V5h3.25A1.75 1.75 0 0120 6.75v9.5A1.75 1.75 0 0118.25 18H5.75A1.75 1.75 0 014 16.25v-9.5A1.75 1.75 0 015.75 5H9V3.75A.75.75 0 019.75 3z" />
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 21h6" />
+        </svg>
+      </div>
+      <h1 class="text-2xl font-bold text-[#2d6a6d]">SIMPRAK</h1>
+      <p class="text-sm text-gray-600">Sistem Informasi Praktikum</p>
     </div>
+
+    <?php if (!empty($error)): ?>
+      <div class="bg-red-100 border border-red-300 text-red-700 p-3 mb-4 rounded-md text-sm">
+        <?= $error; ?>
+      </div>
+    <?php elseif (isset($_GET['status']) && $_GET['status'] === 'registered'): ?>
+      <div class="bg-green-100 border border-green-300 text-green-700 p-3 mb-4 rounded-md text-sm">
+        Pendaftaran berhasil! Silakan login.
+      </div>
+    <?php endif; ?>
+
+    <form method="POST" class="space-y-4">
+      <div>
+        <label class="block text-sm font-medium text-gray-700 mb-1">Email</label>
+        <input type="email" name="email" required
+          class="w-full border border-gray-300 px-4 py-2 rounded-md focus:outline-none focus:ring-2 focus:ring-[#5eaaa8]">
+      </div>
+      <div>
+        <label class="block text-sm font-medium text-gray-700 mb-1">Password</label>
+        <input type="password" name="password" required
+          class="w-full border border-gray-300 px-4 py-2 rounded-md focus:outline-none focus:ring-2 focus:ring-[#5eaaa8]">
+      </div>
+      <button type="submit"
+        class="w-full bg-[#5eaaa8] text-white font-semibold py-2 rounded-md hover:bg-[#2d6a6d] transition duration-200">
+        MASUK
+      </button>
+    </form>
+
+    <p class="text-sm text-center mt-4 text-gray-600">
+      Belum punya akun? <a href="register.php" class="text-[#2d6a6d] font-medium hover:underline">Daftar di sini</a>
+    </p>
+  </div>
+
 </body>
 </html>
