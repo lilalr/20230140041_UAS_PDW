@@ -1,43 +1,38 @@
 <?php
 session_start();
-include '../config.php';
+require_once '../config.php';
 
 if (!isset($_SESSION['user_id']) || $_SESSION['role'] !== 'mahasiswa') {
-  die("Akses ditolak!");
+    die("Akses ditolak!");
 }
 
-$user_id = $_SESSION['user_id'];
-$modul_id = isset($_POST['modul_id']) ? (int)$_POST['modul_id'] : 0;
-
-if (!isset($_FILES['laporan']) || $modul_id <= 0) {
-  die("Data tidak lengkap.");
+if (!isset($_GET['modul_id']) || !is_numeric($_GET['modul_id'])) {
+    die("Modul tidak valid.");
 }
 
-$folder = "../uploads/laporan/";
-if (!is_dir($folder)) {
-  mkdir($folder, 0777, true);
-}
-
-$originalName = basename($_FILES['laporan']['name']);
-$ext = pathinfo($originalName, PATHINFO_EXTENSION);
-$newName = "laporan_{$user_id}_{$modul_id}_" . time() . "." . $ext;
-$destination = $folder . $newName;
-
-if (move_uploaded_file($_FILES['laporan']['tmp_name'], $destination)) {
-  $cek = mysqli_query($conn, "SELECT * FROM laporan WHERE user_id=$user_id AND modul_id=$modul_id");
-
-  if (mysqli_num_rows($cek) > 0) {
-    echo "<script>alert('Sudah mengupload sebelumnya!'); window.history.back();</script>";
-    exit;
-  }
-
-  $insert = mysqli_query($conn, "INSERT INTO laporan (user_id, modul_id, file_laporan) VALUES ($user_id, $modul_id, '$newName')");
-  if ($insert) {
-    echo "<script>alert('Laporan berhasil diupload!'); window.history.back();</script>";
-  } else {
-    echo "<script>alert('Gagal menyimpan laporan!'); window.history.back();</script>";
-  }
-} else {
-  echo "<script>alert('Gagal upload file!'); window.history.back();</script>";
-}
+$modul_id = (int)$_GET['modul_id'];
 ?>
+
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8">
+  <title>Upload Laporan</title>
+  <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet">
+</head>
+<body class="bg-gray-100 p-6">
+  <div class="max-w-md mx-auto bg-white p-6 rounded-xl shadow-md">
+    <h2 class="text-xl font-bold text-[#2d6a6d] mb-4">Upload Laporan</h2>
+    <form action="proses_upload_laporan.php" method="POST" enctype="multipart/form-data">
+      <input type="hidden" name="modul_id" value="<?= $modul_id ?>">
+
+      <label class="block mb-2 text-sm font-medium text-gray-700">Pilih file laporan (.pdf / .doc / .docx)</label>
+      <input type="file" name="laporan" required class="mb-4 w-full p-2 border border-gray-300 rounded">
+
+      <button type="submit" class="bg-[#5eaaa8] text-white px-4 py-2 rounded hover:bg-[#4a908f] transition">
+        Upload
+      </button>
+    </form>
+  </div>
+</body>
+</html>
